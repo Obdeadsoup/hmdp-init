@@ -1,0 +1,107 @@
+### 环境变量说明
+### 在支持 .http 的 IDE 中，可以把 token 手动替换为登录返回值。
+
+@host = http://127.0.0.1:8081
+@token = replace-with-login-token
+@phone = 13800138000
+
+### 阶段 0/1：商铺类型列表
+GET {{host}}/shop-type/list
+
+### 阶段 1：商铺详情
+GET {{host}}/shop/1
+
+### 阶段 1：按类型查询商铺
+GET {{host}}/shop/of/type?typeId=1&current=1
+
+### 阶段 1：用户公开信息
+GET {{host}}/user/info/1
+
+### 阶段 2：发送验证码
+POST {{host}}/user/code?phone={{phone}}
+
+### 阶段 2：登录
+POST {{host}}/user/login
+Content-Type: application/json
+
+{
+  "phone": "{{phone}}",
+  "code": "replace-with-console-code"
+}
+
+### 阶段 2：当前用户
+GET {{host}}/user/me
+authorization: {{token}}
+
+### 阶段 3：商铺详情缓存验证
+GET {{host}}/shop/1
+
+### 阶段 3：更新商铺后删除缓存
+PUT {{host}}/shop
+Content-Type: application/json
+
+{
+  "id": 1,
+  "name": "测试商铺名称"
+}
+
+### 阶段 4：热门博客
+GET {{host}}/blog/hot?current=1
+
+### 阶段 4：博客详情
+GET {{host}}/blog/1
+authorization: {{token}}
+
+### 阶段 4：点赞/取消点赞
+PUT {{host}}/blog/like/1
+authorization: {{token}}
+
+### 阶段 4：查询前 5 个点赞用户
+GET {{host}}/blog/likes/1
+
+### 阶段 4：关注
+PUT {{host}}/follow/2/true
+authorization: {{token}}
+
+### 阶段 4：取关
+PUT {{host}}/follow/2/false
+authorization: {{token}}
+
+### 阶段 4：是否关注
+GET {{host}}/follow/or/not/2
+authorization: {{token}}
+
+### 阶段 4：共同关注
+GET {{host}}/follow/common/2
+authorization: {{token}}
+
+### 阶段 4：发布博客
+POST {{host}}/blog
+Content-Type: application/json
+authorization: {{token}}
+
+{
+  "title": "今天的后端学习记录",
+  "content": "我正在学习 Redis 在点评项目中的使用。",
+  "images": ""
+}
+
+### 阶段 4：关注流
+GET {{host}}/blog/of/follow?lastId=9999999999999&offset=0
+authorization: {{token}}
+
+### 阶段 5：签到
+POST {{host}}/user/sign
+authorization: {{token}}
+
+### 阶段 5：连续签到统计
+GET {{host}}/user/sign/count
+authorization: {{token}}
+
+### 阶段 5：附近商铺
+GET {{host}}/shop/of/type?typeId=1&current=1&x=120.149993&y=30.334229
+
+### 阶段 6/7：秒杀
+POST {{host}}/voucher-order/seckill/1
+authorization: {{token}}
+
