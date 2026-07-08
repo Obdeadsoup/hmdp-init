@@ -14,6 +14,8 @@ import org.springframework.stereotype.Service;
  * @author 虎哥
  * @since 2021-12-22
  */
+
+// 这里用 @Service 注解,给Spring容器里也生成了一个ShopTypeServiceImpl实现类的Bean;
 @Service
 public class ShopTypeServiceImpl extends ServiceImpl<ShopTypeMapper, ShopType> implements IShopTypeService {
 

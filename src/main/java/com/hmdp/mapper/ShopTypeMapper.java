@@ -1,5 +1,7 @@
 package com.hmdp.mapper;
 
+import java.util.List;
+
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.hmdp.entity.ShopType;
 
@@ -13,4 +15,8 @@ import com.hmdp.entity.ShopType;
  */
 public interface ShopTypeMapper extends BaseMapper<ShopType> {
 
+    //
+    List<ShopType> selectAllBySort();
+    // 
+    ShopType selectById(long id);
 }

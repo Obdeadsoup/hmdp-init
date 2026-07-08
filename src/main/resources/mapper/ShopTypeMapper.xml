@@ -1,0 +1,39 @@
+< !--
+    这里的namespace映射到后端Mapper层的ShopTypeMapper接口
+    这里的id对应的是ShopTypeMapper接口里的selectAllBySort方法
+
+    对shopTypeMapper.selectAllBySort();进行调用时,会自动定位到该文件的id=selectAllBySort部分
+-- >
+<mapper namespace="com.hmdp.mapper.ShopTypeMapper" >
+    <select id="selectAllBySort" resultType="com.hmdp.entity.ShopType">
+        select * from tb_shop_type order by sort
+    </select>
+< !-- 
+    ShopType type = shopTypeMapper.selectById(1L);
+    #{id}会使用方法传入的参数
+    #{参数名}是预编译,而${参数名}是直接拼接,有sql注入风险
+-- >
+    <select id="selectById" result="com.hmdp.entity.ShopType">
+        selec * from tb_shop_type where id =#{id}
+    </select>
+< !-- 
+    List<ShopType> selectBySortRange(
+        @Param("minSort") Integer minSort,
+        @Param("maxSort") Integer maxSort
+    );
+-- >
+    <select id="selectBySortRange" resultType="com.hmdp.entity.shopType">
+        select * from tb_shop_type where sort between #{minSort} and #{maxSort}
+            order by sort
+    </select>
+< !--
+    
+
+-- >
+
+    <insert id="insertShopType" useGeneratedKeys="true" keyProperty="id">
+        insert into tb_shop_type(name,icon,sort) values(#{name},#{icon},#{sort})
+    </insert>
+
+
+</mapper>
