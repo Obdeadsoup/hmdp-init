@@ -20,14 +20,8 @@ public class ShopController {
 
     @GetMapping("/{id}")
     public Result queryShopById(@PathVariable("id") Long id) {
-        if(id==null||id<=0){
-            return Result.fail("Illegal ID");
-        }
-        Shop shop=shopService.getById(id);
-        if(shop==null){
-            return Result.fail("Shop not found");
-        }
-        return Result.ok(shop);
+        // 业务实现已经迁移到Service层,这里直接调用即可
+        return shopService.queryById(id);
     }
 
     /**

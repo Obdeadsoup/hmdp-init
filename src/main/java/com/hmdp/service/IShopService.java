@@ -2,6 +2,7 @@ package com.hmdp.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.hmdp.entity.Shop;
+import com.hmdp.dto.Result;
 
 /**
  * <p>
@@ -12,5 +13,9 @@ import com.hmdp.entity.Shop;
  * @since 2021-12-22
  */
 public interface IShopService extends IService<Shop> {
-
+    
+    /**
+     * 根据ID查询商铺信息且优先使用Redis
+     */
+    Result queryById(Long id);
 }
