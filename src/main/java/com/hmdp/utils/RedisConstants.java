@@ -21,7 +21,7 @@ public class RedisConstants {
      * 登录用户有效期 ,单位:分钟
      */
     public static final String LOGIN_USER_KEY = PROJECT_PREFIX+"login:token:";
-    public static final Long LOGIN_USER_TTL = 600L;
+    public static final Long LOGIN_USER_TTL = 60L;
 
     public static final Long CACHE_NULL_TTL = 2L;
 

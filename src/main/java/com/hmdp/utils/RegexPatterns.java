@@ -1,7 +1,9 @@
 package com.hmdp.utils;
 
+
 /**
- * @author 虎哥
+ * 这个RegexPatterns类是一个工具类,用于存放正则表达式常量
+ * 而用作判断是否符合正则需要在RegexUtils工具类里手动实现
  */
 public abstract class RegexPatterns {
     /**

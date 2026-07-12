@@ -2,9 +2,6 @@ package com.hmdp.utils;
 
 import cn.hutool.core.util.StrUtil;
 
-/**
- * @author 虎哥
- */
 public class RegexUtils {
     /**
      * 是否是无效手机格式
@@ -23,6 +20,15 @@ public class RegexUtils {
         return mismatch(email, RegexPatterns.EMAIL_REGEX);
     }
 
+    /**
+     * 是否是无效密码格式
+     * @param code 要检验的密码
+     * @return
+     */
+    public static boolean isPasswordInvalid(String password){
+        return mismatch(password,RegexPatterns.PASSWORD_REGEX);
+    }
+    
     /**
      * 是否是无效验证码格式
      * @param code 要校验的验证码

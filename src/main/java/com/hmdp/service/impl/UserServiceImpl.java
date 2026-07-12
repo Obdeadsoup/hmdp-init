@@ -8,11 +8,15 @@ import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.hmdp.dto.LoginFormDTO;
 import com.hmdp.dto.Result;
+import com.hmdp.dto.SetPasswordDTO;
 import com.hmdp.dto.UserDTO;
 import com.hmdp.entity.User;
 import com.hmdp.mapper.UserMapper;
 import com.hmdp.service.IUserService;
+import com.hmdp.utils.PasswordEncoder;
 import com.hmdp.utils.RegexUtils;
+import com.hmdp.utils.UserHolder;
+
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -30,7 +34,7 @@ import static com.hmdp.utils.SystemConstants.USER_NICK_NAME_PREFIX;
 @Service
 public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IUserService {
     
-    // 
+    // 注入依赖
     @Resource
     private StringRedisTemplate stringRedisTemplate;
 
@@ -58,49 +62,72 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
 
     @Override
     public Result login(LoginFormDTO loginForm){
+        // codex给出的路线是技术路线,很多重复性的部分就没有展开,我这里补一下密码登录业务
         String phone=loginForm.getPhone();
         String code=loginForm.getCode();
+        String password=loginForm.getPassword();
 
+        // 1.校验手机号
         if(RegexUtils.isPhoneInvalid(phone)){
             return Result.fail("Invalid phone");
         }
+        boolean hasCode=StrUtil.isNotBlank(code);
+        boolean hasPassword=StrUtil.isNotBlank(password);
 
-        String cacheCode=stringRedisTemplate.opsForValue().get(LOGIN_CODE_KEY+phone);
-
-        if(StrUtil.isBlank(cacheCode)||!cacheCode.equals(code)){
-            return Result.fail("Code error");
+        /**
+         * hasCode==hasPassword有两种情况,但两种情况显然都不符合要求,直接pass
+         */
+        if(hasCode==hasPassword){
+            return Result.fail("Error login form");
         }
 
-        User user=query().eq("phone",phone).one();
+        User user;
+        // 2.验证码登录
+        if(hasCode){
+            String cacheCode=stringRedisTemplate
+                .opsForValue().get(LOGIN_CODE_KEY+phone);
 
-        if(user==null){
-            user=createUserWithPhone(phone);
+            if(StrUtil.isBlank(cacheCode)||!cacheCode.equals(code)){
+                return Result.fail("验证码错误或已过期");
+            }
+
+            // User user=query().eq("phone",phone).one();
+            user =query()
+                .eq("phone",phone)
+                .one();
+
+            // 验证码可以验证手机号归属,当前情况下用户不存在则直接创建    
+            if(user==null){
+                user=createUserWithPhone(phone);
+            }
+            // 通过手机+密码登录时不需要存验证码,所以这里验证码用完可以直接删除防止重复使用
+            stringRedisTemplate.delete(LOGIN_CODE_KEY+phone);
+        }
+        // 3.密码登录
+        else{
+            if(RegexUtils.isPasswordInvalid(password)){
+                return Result.fail("密码应为4~32位的字母、数字、下划线");
+            }
+            user =query()
+                .eq("phone",phone)
+                .one();
+            // 不允许直接根据密码和手机号直接注册,直接返回错误
+            if(user==null){
+                return Result.fail("当前手机号尚未注册账号");
+            }
+
+            // 用户存在,但密码为空,此时需要跳转验证码登录界面,并在验证码登录后设置密码
+            if(StrUtil.isBlank(user.getPassword())){
+                return Result.fail("当前账号尚未设置密码,请使用验证码登录后设置密码");
+            }
+
+            // 将前端输入密码原文与数据库中加密密码比较
+            if(!PasswordEncoder.matches(user.getPassword(),password)){
+                return Result.fail("手机号或密码错误");
+            }
         }
 
-        // 将User 转成UserDTO ,避免保存敏感字段
-        UserDTO userDTO=BeanUtil.copyProperties(user,UserDTO.class);
-        // 生成用户专属token,作为登录令牌
-        String token=UUID.randomUUID().toString(true);
-
-
-        // 利用BeanUtil 将用户信息UserDTO转为Map<String,Object>类,方便存入Hash型Redis
-        Map<String,Object> userMap=BeanUtil.beanToMap(
-            userDTO,
-            new HashMap<>(),
-            CopyOptions.create()
-                .setIgnoreNullValue(true)
-                .setFieldValueEditor((fieldName,fieldValue)->fieldValue.toString())
-        );
-        String tokenKey=LOGIN_USER_KEY+token;
-
-        // 将用户信息存入Redis,key为tokenKey,value为userMap,设置过期时间
-        stringRedisTemplate.opsForHash().putAll(tokenKey,userMap);
-        stringRedisTemplate.expire(tokenKey,LOGIN_USER_TTL,TimeUnit.MINUTES);
-
-        // 删除验证码避免重复使用
-        stringRedisTemplate.delete(LOGIN_CODE_KEY+phone);
-
-        // 将token返回前端,后续前端在发送请求时携带该token作为令牌
+        String token =createToken(user);
         return Result.ok(token);
     }
 
@@ -122,6 +149,80 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         user.setNickName(USER_NICK_NAME_PREFIX+RandomUtil.randomString(10));
         save(user);
         return user;
+    }
+
+    @Override
+    public Result setPassword(SetPasswordDTO form){
+        if(form==null){
+            return Result.fail("密码不能为空");
+        }
+        String password=form.getPassword();
+        String confirmPassword=form.getConfirmPassword();
+
+        if(RegexUtils.isPasswordInvalid(password)){
+            return Result.fail("密码应为4～32位字母、数字或下划线");
+        }
+        if(!password.equals(confirmPassword)){
+            return Result.fail("两次输入密码不一致");
+        }
+
+        // 通过UserHolder获取当前用户
+        UserDTO currentUser=UserHolder.getUser();
+        if(currentUser==null){
+            return Result.fail("当前用户未登录");
+        }
+
+        // 加密密码明文并更新数据库(MyBatis-Plus版)
+        String encodedPassword=PasswordEncoder.encode(password);
+
+        boolean success=lambdaUpdate()
+                .eq(User::getId,currentUser.getId())
+                .set(User::getPassword,encodedPassword)
+                .update();
+
+        if(!success){
+            return Result.fail("密码设置失败");
+        }
+
+        return Result.ok();
+    }
+
+    /**
+     * 因为无论是验证码登录/注册还是密码登录,都需要使用token进行令牌申请并存入Redis
+     * 故将该部分逻辑单独作为userServiceImpl的一个内部私有方法
+     */ 
+    private String createToken(User user){
+        // 将User 转成UserDTO ,避免保存敏感字段进入Redis
+        UserDTO userDTO=
+            BeanUtil.copyProperties(user,UserDTO.class);
+        // 生成用户专属token,作为登录令牌
+        String token=UUID.randomUUID().toString(true);
+
+
+        // 利用BeanUtil 将用户信息UserDTO转为Map<String,Object>类,方便存入Hash型Redis
+        Map<String,Object> userMap=BeanUtil.beanToMap(
+            userDTO,
+            new HashMap<>(),
+            CopyOptions.create()
+                .setIgnoreNullValue(true)
+                .setFieldValueEditor(
+                    (fieldName,fieldValue)->
+                    fieldValue.toString())
+        );
+        // 加上项目Redis前缀形成完整key 
+        String tokenKey=LOGIN_USER_KEY+token;
+
+        // 将用户信息存入Redis,key为tokenKey,value为userMap,设置过期时间
+        stringRedisTemplate
+            .opsForHash()
+            .putAll(tokenKey,userMap);
+        stringRedisTemplate.expire(
+            tokenKey,
+            LOGIN_USER_TTL,
+            TimeUnit.MINUTES
+        );
+
+        return token;
     }
 }
 

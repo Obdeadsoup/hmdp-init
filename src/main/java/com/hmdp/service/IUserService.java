@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.hmdp.entity.User;
 import com.hmdp.dto.LoginFormDTO;
 import com.hmdp.dto.Result;
+import com.hmdp.dto.SetPasswordDTO;
 
 public interface IUserService extends IService<User> {
     // 发送验证码
@@ -12,4 +13,6 @@ public interface IUserService extends IService<User> {
     Result login(LoginFormDTO loginForm);
     // 登出
     Result logout(String token);
+    // 
+    Result setPassword(SetPasswordDTO form);
 }

@@ -4,6 +4,7 @@ import com.hmdp.dto.UserDTO;
 import com.hmdp.utils.UserHolder;
 import com.hmdp.dto.LoginFormDTO;
 import com.hmdp.dto.Result;
+import com.hmdp.dto.SetPasswordDTO;
 import com.hmdp.entity.UserInfo;
 import com.hmdp.service.IUserInfoService;
 import com.hmdp.service.IUserService;
@@ -40,6 +41,13 @@ public class UserController {
         String token = request.getHeader("authorization");
         return userService.logout(token);
     }
+
+    @PutMapping("/password")
+    public Result setPassword(
+        @RequestBody SetPasswordDTO form){
+
+            return userService.setPassword(form);
+        }
 
     @GetMapping("/me")
     public Result me(){
