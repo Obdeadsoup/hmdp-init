@@ -1,39 +1,95 @@
-< !--
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!--
     这里的namespace映射到后端Mapper层的ShopTypeMapper接口
-    这里的id对应的是ShopTypeMapper接口里的selectAllBySort方法
+    第一个映射里id对应的是ShopTypeMapper接口里的selectAllBySort方法
 
     对shopTypeMapper.selectAllBySort();进行调用时,会自动定位到该文件的id=selectAllBySort部分
--- >
-<mapper namespace="com.hmdp.mapper.ShopTypeMapper" >
+-->
+<mapper namespace="com.hmdp.mapper.ShopTypeMapper">
     <select id="selectAllBySort" resultType="com.hmdp.entity.ShopType">
         select * from tb_shop_type order by sort
     </select>
-< !-- 
-    ShopType type = shopTypeMapper.selectById(1L);
-    #{id}会使用方法传入的参数
-    #{参数名}是预编译,而${参数名}是直接拼接,有sql注入风险
--- >
-    <select id="selectById" result="com.hmdp.entity.ShopType">
-        selec * from tb_shop_type where id =#{id}
+
+    <!--
+        ShopType type = shopTypeMapper.selectById(1L);
+        #{id}会使用方法传入的参数
+        #{参数名}是预编译,而${参数名}是直接拼接,有sql注入风险
+    -->
+    <select id="selectById" resultType="com.hmdp.entity.ShopType">
+        select * from tb_shop_type where id = #{id}
     </select>
-< !-- 
-    List<ShopType> selectBySortRange(
-        @Param("minSort") Integer minSort,
-        @Param("maxSort") Integer maxSort
-    );
--- >
-    <select id="selectBySortRange" resultType="com.hmdp.entity.shopType">
+
+    <!--
+        List<ShopType> selectBySortRange(
+            @Param("minSort") Integer minSort,
+            @Param("maxSort") Integer maxSort
+        );
+    -->
+    <select id="selectBySortRange" resultType="com.hmdp.entity.ShopType">
         select * from tb_shop_type where sort between #{minSort} and #{maxSort}
-            order by sort
+        order by sort
     </select>
-< !--
-    
 
--- >
+    <!--
+        此处数据库表tb_shop_type的id主键是自增的
 
+        ShopType type = new ShopType();
+        type.setName("美食");
+        type.setIcon("/images/food.png");
+        type.setSort(1);
+        // 此时的type.getId()返回的还是null或者0
+
+        shopTypeMapper.insertShopType(type);
+        /*
+        此时MyBatis在数据库里执行完insert语句后,会自动把数据库生成的主键id回填到type对象里
+        useGeneratedKeys用来设置是否自动获取数据库生成的ID,keyProperty用来设置ID回填的具体属性
+        下方的实例,即将数据库表里自增的主键id回填到type对象的id属性里
+        */
+    -->
     <insert id="insertShopType" useGeneratedKeys="true" keyProperty="id">
-        insert into tb_shop_type(name,icon,sort) values(#{name},#{icon},#{sort})
+        insert into tb_shop_type(name, icon, sort) values(#{name}, #{icon}, #{sort})
     </insert>
 
+    <!--
+        结果映射: 该项目里数据库表tb_shop_type字段名和Java实体类ShopType属性名是一一对应的
+        可以直接写 <select id="selectAllBySort" resultType="com.hmdp.entity.ShopType">
 
+        若字段名和属性名不一致,如数据库表是type_name,实体类字段名是name,则可以:
+        <select id="shopTypeResultMap" type="com.hmdp.entity.ShopType">
+            select type_name as name from tb_shop_type
+        </select>
+        或者:
+        <resultMap id="shopTypeResultMap" type="com.hmdp.entity.ShopType">
+            <id column="id" property="id"/>
+            <result column="type_name" property="name"/>
+        </resultMap>
+        <select id="selectAllBySort" resultMap="shopTypeResultMap">
+            select * from tb_shop_type order by sort
+        </select>
+    -->
+
+    <!--
+        动态SQL:
+        根据java业务里参数是否存在动态决定sql语句中是否需要添加一些片段
+        比如说一个店铺查询业务,提供了名称、最大排序值、最小排序值可填,根据三个参数填写情况动态决定sql
+    -->
+    <select id="search" resultType="com.hmdp.entity.ShopType">
+        select id, name, icon, sort
+        from tb_shop_type
+
+        <where>
+            <if test="name != null and name != ''">
+                and name like concat('%', #{name}, '%')
+            </if>
+            <if test="minSort != null">
+                and sort <![CDATA[>=]]> #{minSort}
+            </if>
+            <if test="maxSort != null">
+                and sort <![CDATA[<=]]> #{maxSort}
+            </if>
+        </where>
+        order by sort
+    </select>
 </mapper>
