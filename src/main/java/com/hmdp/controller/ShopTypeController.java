@@ -33,7 +33,7 @@ public class ShopTypeController {
     // /shop-type/{id} GET请求,查询商铺类型
     @GetMapping("/{id}")
     // @PathVariable注解,将路径参数"/{id}"绑定到方法的参数"id"上
-    public Result getShopTypeById(@PathVariable long id){
+    public Result getShopTypeById(@PathVariable Long id){
         ShopType shopType=shopTypeService.getShopTypeById(id);
         return Result.ok(shopType);
     }

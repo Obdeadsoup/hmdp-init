@@ -18,4 +18,9 @@ public interface IShopService extends IService<Shop> {
      * 根据ID查询商铺信息且优先使用Redis
      */
     Result queryById(Long id);
+
+    /**
+     * 更新商铺信息
+     */
+    Result updateShop(Shop shop);
 }

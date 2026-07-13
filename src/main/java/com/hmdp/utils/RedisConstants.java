@@ -23,10 +23,19 @@ public class RedisConstants {
     public static final String LOGIN_USER_KEY = PROJECT_PREFIX+"login:token:";
     public static final Long LOGIN_USER_TTL = 60L;
 
+    /**
+     * 空值缓存过期时间，单位：分钟
+     * 用于防止缓存穿透
+     */
     public static final Long CACHE_NULL_TTL = 2L;
 
-    public static final Long CACHE_SHOP_TTL = 30L;
+    /**
+     * 商铺缓存
+     * hmdp:cache:shop:id
+     * 商铺缓存有效期 ,单位:分钟
+     */
     public static final String CACHE_SHOP_KEY = PROJECT_PREFIX+"cache:shop:";
+    public static final Long CACHE_SHOP_TTL = 30L;
 
     public static final String LOCK_SHOP_KEY = PROJECT_PREFIX+"lock:shop:";
     public static final Long LOCK_SHOP_TTL = 10L;

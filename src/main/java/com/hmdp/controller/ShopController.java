@@ -18,6 +18,12 @@ public class ShopController {
     @Resource
     public IShopService shopService;
 
+
+    /**
+     * 根据商铺ID查询商铺信息
+     * @param id
+     * @return
+     */
     @GetMapping("/{id}")
     public Result queryShopById(@PathVariable("id") Long id) {
         // 业务实现已经迁移到Service层,这里直接调用即可
@@ -44,9 +50,7 @@ public class ShopController {
      */
     @PutMapping
     public Result updateShop(@RequestBody Shop shop) {
-        // 写入数据库
-        shopService.updateById(shop);
-        return Result.ok();
+        return shopService.updateShop(shop);
     }
 
     /**

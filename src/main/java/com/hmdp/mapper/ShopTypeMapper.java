@@ -19,7 +19,7 @@ public interface ShopTypeMapper extends BaseMapper<ShopType> {
     List<ShopType> selectAllBySort();
 
     // 这里其实不需要自行定义selectById方法,因为MyBatisPlus的BaseMapper已经提供了selectById方法,可以直接调用
-    ShopType selectById(long id);
+    ShopType selectById(Long id);
 
     // 动态查询商铺类型 , 对应xml文件里的动态sql
     List<ShopType> search(
