@@ -48,6 +48,8 @@ public class MvcConfig implements WebMvcConfigurer{
                 "/voucher/**",
 
                 "/blog/hot",
+                "/blog/of/user",
+                "/blog/*",
 
                 "/upload/**"
             )
