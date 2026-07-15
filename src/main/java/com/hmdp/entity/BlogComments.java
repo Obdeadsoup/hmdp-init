@@ -30,7 +30,7 @@ public class BlogComments implements Serializable {
     private Long userId;
 
     /**
-     * 探店id
+     * 所属博客id
      */
     private Long blogId;
 

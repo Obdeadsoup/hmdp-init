@@ -12,6 +12,8 @@ import com.hmdp.service.IBlogService;
 import com.hmdp.service.IUserService;
 import com.hmdp.utils.SystemConstants;
 import com.hmdp.utils.UserHolder;
+
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
@@ -23,12 +25,15 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import cn.hutool.core.bean.BeanUtil;
+import static com.hmdp.utils.RedisConstants.*;
 @Service
 public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IBlogService {
 
     @Resource
     private IUserService userService;
-
+    @Resource
+    private StringRedisTemplate stringRedisTemplate;
 
     /**
      * 其实这几个方法通用逻辑都是先用Page进行query查询数据库得到博客信息,然后填充博客信息里缺失的User信息
@@ -50,7 +55,7 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
 
         // 调用内部批量填充User信息的方法
         fillBlogUsers(blogs);
-
+        
         return Result.ok(blogs);
     }
 
@@ -144,8 +149,91 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
     }
 
     @Override
-    public Result likeBlog(Long id) {return Result.fail("功能尚未实现");}  
+    public Result likeBlog(Long id) {
+        if(id==null||id<1){
+            return Result.fail("博客不存在");
+        }
 
+        // 通过UserHolder获取当前登录用户信息(不依靠前端传入的用户信息,防止伪造)
+        UserDTO userDTO =UserHolder.getUser();
+
+        if(userDTO ==null){
+            return Result.fail("当前尚未登录,请先登录");
+        }
+        Long userId=userDTO.getId();
+
+        // 将blog的id拼接成key,userId作为member,查找是否存在对应关系来判断当前用户是否点赞过该博客
+        String key=BLOG_LIKED_KEY+id;
+        Double score=stringRedisTemplate
+                .opsForZSet()
+                .score(key,userId.toString());
+        
+        // score不存在说明当前用户和该博客无点赞关系,进行点赞操作
+        if(score==null){
+            boolean success=update()
+                    .setSql("liked=liked+1")
+                    .eq("id",id)
+                    .update();
+            if(!success){
+                return Result.fail("点赞失败或博客不存在");
+            }
+            // 点赞,数据库更新成功则去Redis添加对应点赞关系
+            stringRedisTemplate.opsForZSet().add(
+                    key,
+                    userId.toString(),
+                    System.currentTimeMillis()
+            );
+            return Result.ok();
+        }
+        // score存在说明当前用户和该博客有点赞关系,进行取消点赞操作
+        boolean success=update()
+                .setSql("liked=liked-1")
+                .eq("id",id)
+                .gt("liked",0)
+                .update();
+
+        if(!success){
+            return Result.fail("取消点赞失败");
+        }
+        stringRedisTemplate.opsForZSet().remove(key,userId.toString());
+        return Result.ok();
+    }  
+
+    @Override
+    public Result queryBlogLikes(Long id){
+        if(id==null||id<1){
+            return Result.fail("博客不存在");
+        }
+        String key=BLOG_LIKED_KEY+id;
+
+        // score是时间戳 ,时间越大,点赞越晚
+        Set<String> top5UserIds=stringRedisTemplate.opsForZSet()
+                .reverseRange(key,0,4);
+
+        if(top5UserIds==null||top5UserIds.isEmpty()){
+            return Result.ok(Collections.emptyList());
+        }
+
+        List<Long> userIds=top5UserIds.stream()
+                .map(Long::valueOf)
+                .collect(Collectors.toList());
+        List<User> users=userService.listByIds(userIds);
+
+        Map<Long,User> userMap=users.stream()
+                .collect(Collectors.toMap(
+                        User::getId,
+                        Function.identity()
+                ));
+        List<UserDTO> result = userIds.stream()
+                .map(userMap::get)
+                .filter(Objects::nonNull)
+                .map(user ->
+                        BeanUtil.copyProperties(user, UserDTO.class)
+                )
+                .collect(Collectors.toList());
+
+        return Result.ok(result);
+    }
     /**
      * 私有内部辅助方法
      */
@@ -161,6 +249,7 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
         }
         blog.setName(user.getNickName());
         blog.setIcon(user.getIcon());
+        isBlogLiked(blog);
     }
     // 核心方法:批量填充博客的User信息
     private void fillBlogUsers(List<Blog> blogs){  
@@ -194,6 +283,7 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
             if(user!=null){
                 blog.setIcon(user.getIcon());
                 blog.setName(user.getNickName());
+                isBlogLiked(blog);
             }
         }
     }
@@ -203,5 +293,25 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
         return current==null|| current<1
                 ?1
                 :current;
+    }
+    private void isBlogLiked(Blog blog){
+        if(blog==null||blog.getId()==null){
+            return;
+        }
+
+        UserDTO loginUser=UserHolder.getUser();
+
+        // 因为当前路径无拦截,未登录用户访问直接显示未点赞,即isLike为false
+        if(loginUser==null){
+            blog.setIsLike(false);
+            return;
+        }
+
+        String key=BLOG_LIKED_KEY+blog.getId();
+
+        Double score=stringRedisTemplate
+                .opsForZSet()
+                .score(key,loginUser.getId().toString());
+        blog.setIsLike(score!=null);
     }
 }

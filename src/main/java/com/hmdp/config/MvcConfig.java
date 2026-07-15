@@ -50,7 +50,8 @@ public class MvcConfig implements WebMvcConfigurer{
                 "/blog/hot",
                 "/blog/of/user",
                 "/blog/*",
-
+                "/blog/likes/**",
+                
                 "/upload/**"
             )
             .order(1);
