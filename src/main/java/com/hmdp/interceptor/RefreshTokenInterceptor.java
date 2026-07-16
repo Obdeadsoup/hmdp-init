@@ -64,7 +64,7 @@ public class RefreshTokenInterceptor implements HandlerInterceptor{
         // 将用户信息存入ThreadLocal中
         UserHolder.saveUser(userDTO);
 
-        // 用户仍然活跃刷新tokenKey有效期
+        // 用户仍然活跃刷新tokenKey有效期(token并没有变,只是过期时间修改了)
         stringRedisTemplate.expire(
             tokenKey,
             LOGIN_USER_TTL,

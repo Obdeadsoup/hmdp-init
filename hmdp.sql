@@ -283,3 +283,13 @@ CREATE TABLE `tb_voucher_order`  (
 -- ----------------------------
 
 SET FOREIGN_KEY_CHECKS = 1;
+
+
+-- -----
+-- 这里在做博主关注等博客基本功能时才发现
+-- tb_flow表中的user_id和follow_user_id字段没有设置唯一索引
+-- 可能会导致一个用户关注同一个博主多次(如果在java里用if判断可能在高并发情况下出现纰漏)
+-- -----
+
+USE hmdp;
+ALTER TABLE tb_follow add unique key uk_user_follow(user_id,follow_user_id);

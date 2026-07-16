@@ -3,7 +3,6 @@ package com.hmdp.utils;
 public class RedisConstants {
 
     private RedisConstants(){}
-
     // 因为在本机Redis上使用,为防止多个项目的key冲突,统一加上"hmdp"的前缀
     public static final String PROJECT_PREFIX="hmdp:";
 
@@ -25,6 +24,7 @@ public class RedisConstants {
 
     /**
      * 空值缓存过期时间，单位：分钟
+     * 缓存key名字共用普通商户缓存
      * 用于防止缓存穿透
      */
     public static final Long CACHE_NULL_TTL = 2L;
@@ -37,11 +37,27 @@ public class RedisConstants {
     public static final String CACHE_SHOP_KEY = PROJECT_PREFIX+"cache:shop:";
     public static final Long CACHE_SHOP_TTL = 30L;
 
+    /**
+     * 商铺缓存Redis互斥锁前缀及过期时间,单位:秒
+     * hmdp:lock:shop:id
+     */
     public static final String LOCK_SHOP_KEY = PROJECT_PREFIX+"lock:shop:";
     public static final Long LOCK_SHOP_TTL = 10L;
 
-    public static final String SECKILL_STOCK_KEY = PROJECT_PREFIX+"seckill:stock:";
+    /**
+     * 博客点赞用户前缀
+     * blog:liked:{id}
+     */
     public static final String BLOG_LIKED_KEY = PROJECT_PREFIX+"blog:liked:";
+
+    /**
+     * 用户关注集合
+     * key: hmdp:follows:{userId}
+     * member: 被关注的用户id
+     */
+    public static final String FOLLOWS_KEY=PROJECT_PREFIX+"follows:";
+    public static final String SECKILL_STOCK_KEY = PROJECT_PREFIX+"seckill:stock:";
+    
     public static final String FEED_KEY = PROJECT_PREFIX+"feed:";
     public static final String SHOP_GEO_KEY = PROJECT_PREFIX+"shop:geo:";
     public static final String USER_SIGN_KEY = PROJECT_PREFIX+"sign:";
