@@ -19,4 +19,6 @@ public interface IBlogService extends IService<Blog> {
     Result likeBlog(Long id);
     // 其实我也不知道这里为什么要加一个查询最近前5的用户
     Result queryBlogLikes(Long id);
+    // 关注页滚动查询
+    Result queryBlogOfFollow(Long maxTime,Integer offset);
 }

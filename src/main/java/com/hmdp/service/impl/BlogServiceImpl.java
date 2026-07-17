@@ -4,6 +4,7 @@ import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.hmdp.dto.Result;
+import com.hmdp.dto.ScrollResult;
 import com.hmdp.dto.UserDTO;
 import com.hmdp.entity.Blog;
 import com.hmdp.entity.User;
@@ -16,9 +17,13 @@ import com.hmdp.utils.UserHolder;
 import com.hmdp.entity.Follow;
 
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.ZSetOperations;
+import org.springframework.data.redis.core.ZSetOperations.TypedTuple;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
+
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -354,5 +359,120 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
                 .opsForZSet()
                 .score(key,loginUser.getId().toString());
         blog.setIsLike(score!=null);
+    }
+
+    /**
+     * 滚动分页查询,并定义每页数量
+     */
+    private static final int FEED_PAGE_SIZE = 4;
+    @Override
+    public Result queryBlogOfFollow(Long maxTime,Integer offset){
+        // 1. 获取当前登录用户
+        UserDTO loginUser=UserHolder.getUser();
+        if (loginUser == null) {
+            return Result.fail("用户未登录");
+        }
+
+        // 2. 前端参数兜底
+        long max=maxTime==null||maxTime<=0
+                ?System.currentTimeMillis()
+                :maxTime;
+
+        int queryOffset=offset==null||offset<=0
+                ?0
+                :offset;
+
+        // 3. 拼接当前登录用的Feed收件箱
+        String feedKey=FEED_KEY + loginUser.getId();
+
+        /**
+         * 4. 查询Redis ZSet
+         */
+        Set<ZSetOperations.TypedTuple<String>> tuples=
+                stringRedisTemplate.opsForZSet()
+                        .reverseRangeByScoreWithScores(
+                                feedKey,
+                                0,
+                                max,
+                                queryOffset,
+                                FEED_PAGE_SIZE
+                        );
+        // 5. feed为空,返回空结果
+        if(tuples==null||tuples.isEmpty()){
+            ScrollResult result=new ScrollResult();
+            result.setList(Collections.emptyList());
+            result.setMinTime(0L);
+            result.setOffset(0);
+
+            return Result.ok(result);
+        }
+
+        // 6. 解析博客ID ,最小时间戳及其出现次数
+        List<Long> blogIds = new ArrayList<>(
+                tuples.size()
+        );
+        long minTime=0l;
+        int sameMinTimeCount=0;
+
+        // 遍历member集合
+        for(ZSetOperations.TypedTuple<String> tuple : tuples){
+            String blogIdValue=tuple.getValue();
+            Double score=tuple.getScore();
+
+            if (blogIdValue == null || score == null) {
+                continue;
+            }
+
+            blogIds.add(Long.valueOf(blogIdValue));
+            long time=score.longValue();
+
+            /**
+             * 对score从高到低遍历,若当前博客时间与minTime相等,offset加一
+             * 否则即是小于minTime,重置offset=1并更新minTime
+             */
+            if(time == minTime){
+                sameMinTimeCount++;
+            }else{
+                minTime=time;
+                sameMinTimeCount=1;
+            }
+        }
+        /**
+         * 7. 计算下一页的offset
+         *  因为如果本次查询的minTime等于上一次的minTime
+         * 则需要累加此前已经跳过的offset数
+         */
+        int nextOffset= minTime==max
+                ? queryOffset+sameMinTimeCount
+                : sameMinTimeCount;
+
+        /**
+         * 8. 根据博客ID查询数据库
+         */
+        List<Blog> queriedBlogs=listByIds(blogIds);
+
+        // 9. 转换为blogId->Blog 的Map
+        Map<Long , Blog> blogMap=queriedBlogs.stream()
+                .collect(Collectors.toMap(
+                        Blog::getId,
+                        Function.identity()
+                ));
+
+        // 10. 按Redis中blogIds的顺心重组
+        List<Blog> blogs=blogIds.stream()
+                .map(id->blogMap.get(id))
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+
+        // 11. 之前的辅助函数 ,补充返回的VO信息
+        fillBlogUsers(blogs);
+
+        // 12. 封装滚动分页结果
+        ScrollResult result =new ScrollResult();
+        result.setList(blogs);
+        result.setMinTime(minTime);
+        result.setOffset(nextOffset);
+
+        return Result.ok(result);
     }
 }
