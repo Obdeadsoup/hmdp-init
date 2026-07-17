@@ -9,9 +9,11 @@ import com.hmdp.entity.Blog;
 import com.hmdp.entity.User;
 import com.hmdp.mapper.BlogMapper;
 import com.hmdp.service.IBlogService;
+import com.hmdp.service.IFollowService;
 import com.hmdp.service.IUserService;
 import com.hmdp.utils.SystemConstants;
 import com.hmdp.utils.UserHolder;
+import com.hmdp.entity.Follow;
 
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
@@ -34,6 +36,10 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
     private IUserService userService;
     @Resource
     private StringRedisTemplate stringRedisTemplate;
+
+    // Feed流
+    @Resource
+    private IFollowService followService;
 
     /**
      * 其实这几个方法通用逻辑都是先用Page进行query查询数据库得到博客信息,然后填充博客信息里缺失的User信息
@@ -114,14 +120,20 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
         return Result.ok(blogs);
     }
 
+    /**
+     * 发布博客
+     * Feed流作用于这里
+     */
     @Override
     public Result saveBlog(Blog blog) {
+        // 1. 获取当前登录用户
         UserDTO loginUser=UserHolder.getUser();
 
         if(loginUser==null){
             return Result.fail("当前尚未登录");
         }
 
+        // 2. 检查博客内容
         if(blog==null
             ||blog.getShopId()==null
             ||StrUtil.isBlank(blog.getTitle())
@@ -131,18 +143,47 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
             return Result.fail("博客内容不完整");
         }
 
-        // 后端强行覆盖不能由前端自行决定的字段 ,防止错误信息注入
+        // 3. 后端强行覆盖不能由前端自行决定的字段 ,防止错误信息注入
         blog.setId(null);
         blog.setUserId(loginUser.getId());
         blog.setLiked(0);
         blog.setComments(0);
 
+        // 4. 保存博客到MySQL
         boolean success=save(blog);
 
         if(!success){
             return Result.fail("博客保存失败");
         }
 
+        /**
+         * 5. Feed流
+         *    查询当前作者的所有粉丝,查询条件为:
+         *    user_id = 粉丝id;
+         *    follow_user_id=被关注的达人id;
+         */
+        List<Follow> fans=followService.query()
+                .eq("follow_user_id",loginUser.getId())
+                .list();
+
+        // 6. 
+
+        long publishTime=System.currentTimeMillis();
+        /**
+         * 7. 将博客ID推送到每个粉丝的Feed收件箱
+         *    用ZSet Redis,key是粉丝Id,members时粉丝关注的达人的博客,score是时间戳
+         */
+        for(Follow fan:fans){
+            Long fanId=fan.getUserId();
+
+            String feedKey=FEED_KEY+fanId;
+
+            stringRedisTemplate.opsForZSet().add(
+                    feedKey,
+                    blog.getId().toString(),
+                    publishTime
+            );
+        }
         // 数据库保存成功后id自增并回填至实体类,所以可以直接返回id
         return Result.ok(blog.getId());
 

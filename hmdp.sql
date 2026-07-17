@@ -293,3 +293,8 @@ SET FOREIGN_KEY_CHECKS = 1;
 
 USE hmdp;
 ALTER TABLE tb_follow add unique key uk_user_follow(user_id,follow_user_id);
+
+-- 这里是在做评论功能时给tb_blog_comments表加两条索引方便查询评论
+ALTER TABLE tb_blog_comments
+ADD INDEX idx_blog_parent_time (blog_id,parent_id,create_time),
+ADD INDEX idx_parent_time (parent_id,create_time);

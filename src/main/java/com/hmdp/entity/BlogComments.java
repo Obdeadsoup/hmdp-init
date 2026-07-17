@@ -41,6 +41,7 @@ public class BlogComments implements Serializable {
 
     /**
      * 回复的评论id
+     * 若是1级评论则为0,否则为实际回复的评论的id
      */
     private Long answerId;
 
@@ -57,7 +58,7 @@ public class BlogComments implements Serializable {
     /**
      * 状态，0：正常，1：被举报，2：禁止查看
      */
-    private Boolean status;
+    private Integer status;
 
     /**
      * 创建时间
@@ -68,6 +69,5 @@ public class BlogComments implements Serializable {
      * 更新时间
      */
     private LocalDateTime updateTime;
-
 
 }

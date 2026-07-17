@@ -45,7 +45,6 @@ public class UserController {
     @PutMapping("/password")
     public Result setPassword(
         @RequestBody SetPasswordDTO form){
-
             return userService.setPassword(form);
         }
 
