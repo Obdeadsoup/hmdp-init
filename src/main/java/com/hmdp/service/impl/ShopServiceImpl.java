@@ -1,18 +1,34 @@
 package com.hmdp.service.impl;
 
+import com.hmdp.utils.SystemConstants;
+
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONUtil;
+
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.hmdp.dto.Result;
 import com.hmdp.entity.Shop;
 import com.hmdp.mapper.ShopMapper;
 import com.hmdp.service.IShopService;
 import com.hmdp.utils.RandomTTL;
+
+import org.springframework.data.geo.Distance;
+import org.springframework.data.geo.GeoResult;
+import org.springframework.data.geo.GeoResults;
+import org.springframework.data.geo.Metrics;
+import org.springframework.data.redis.connection.RedisGeoCommands;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.domain.geo.GeoReference;
 import org.springframework.stereotype.Service;
 
-// import java.util.concurrent.ThreadLocalRandom;
 import javax.annotation.Resource;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import static com.hmdp.utils.RedisConstants.*;
@@ -34,9 +50,7 @@ public class ShopServiceImpl
         if(id==null||id<1){
             return Result.fail("商铺ID不合法");
         }
-
         /* 原业务逻辑
-
         // 拼接成key去Redis中查找商铺
         String key=CACHE_SHOP_KEY+id;
         String shopJson=
@@ -108,7 +122,108 @@ public class ShopServiceImpl
         );
         return Result.ok();
     }
+    /**
+     * 
+     * @param id
+     * @return
+     */
+    @Override
+    public Result queryShopByType( 
+            Integer typeId,
+            Integer current,
+            Double x,
+            Double y        
+    ){
+        if(typeId==null||typeId<1){
+            return Result.fail("商铺类型不合法");
+        }
 
+        int pageNumber= current==null||current<1
+                ?1
+                :current;
+
+        if(x==null||y==null){
+            Page<Shop> page=query()
+                    .eq("type_id",typeId)
+                    .page(new Page<>(
+                            pageNumber,
+                            SystemConstants.DEFAULT_PAGE_SIZE
+                    ));
+            return Result.ok(page.getRecords());
+        }
+
+        if(x< -180||x>180 ||y< -90 || y>90){
+            return Result.fail("位置信息不合法");
+        }
+
+        /**
+         * 核心代码
+         * 每页5条
+         * 第一页:from=0,end=5
+         * 第二页:from=5,end=10
+         * 第三页:from=10,end=15
+         */
+        int pageSize=SystemConstants.DEFAULT_PAGE_SIZE;
+        int from = (pageNumber - 1) * pageSize;
+        int end = pageNumber * pageSize;    
+
+        String key=SHOP_GEO_KEY+typeId;
+
+        GeoResults<RedisGeoCommands.GeoLocation<String>>
+                results=
+                stringRedisTemplate.opsForGeo().search(
+                        key,
+                        GeoReference.fromCoordinate(x,y),
+                        new Distance(
+                                5000,
+                                Metrics.KILOMETERS
+                        ),
+                        RedisGeoCommands
+                            .GeoSearchCommandArgs
+                            .newGeoSearchArgs()
+                            // 返回每家商铺与用户的距离
+                            .includeDistance()
+                            // 按距离从近到远
+                            .sortAscending()
+                            // 先取前end条
+                            .limit(end)
+                );
+        
+        if(results==null){
+            return Result.ok(Collections.emptyList());
+        }
+
+        List<GeoResult
+                <RedisGeoCommands.GeoLocation<String>>>
+                content=results.getContent();
+        
+        if(content.size()<=from){
+            return Result.ok(Collections.emptyList());
+        }
+
+        List<Long> shopIds=new ArrayList<>();
+        Map<Long , Double> distanceMap=
+                new HashMap<>();
+
+        for(int i=from;i<content.size();i++){
+            GeoResult<
+                    RedisGeoCommands.GeoLocation<String>>
+                    geoResult=content.get(i);
+
+            String shopIdValue=
+                    geoResult.getContent().getName();
+
+            Long shopId=
+                    Long.valueOf(shopIdValue);
+
+            double distance=
+                    geoResult.getDistance().getValue();
+
+            shopIds.add(shopId);
+            distanceMap.put(shopId,distance);
+        }
+        return Result.ok();
+    }
     /** 
      * Redis互斥锁核心方法
      */ 

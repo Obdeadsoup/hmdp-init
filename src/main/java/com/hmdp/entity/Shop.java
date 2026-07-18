@@ -94,8 +94,9 @@ public class Shop implements Serializable {
      * 更新时间
      */
     private LocalDateTime updateTime;
-
-
+    /**
+     * 返回给前端的距离,非数据库字段
+     */
     @TableField(exist = false)
     private Double distance;
 }

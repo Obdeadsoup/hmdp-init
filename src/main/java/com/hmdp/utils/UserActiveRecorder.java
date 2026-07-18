@@ -14,6 +14,7 @@ import static com.hmdp.utils.RedisConstants.USER_ACTIVE_TOTAL_KEY;
  * 用户活跃记录组件
  * UserActiveRecorder
  */
+@Component
 public class UserActiveRecorder {
     private static final ZoneId BUSINESS_ZONE=
             ZoneId.of("Asia/Shanghai");
