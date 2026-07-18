@@ -13,6 +13,12 @@ public interface IUserService extends IService<User> {
     Result login(LoginFormDTO loginForm);
     // 登出
     Result logout(String token);
-    // 
+    // 设置账号密码
     Result setPassword(SetPasswordDTO form);
+    // 每日签到
+    Result sign();
+    // 统计本月截至今天的签到天数
+    Result signCount();
+    // 统计本月使用天数
+    Result signTotal();
 }

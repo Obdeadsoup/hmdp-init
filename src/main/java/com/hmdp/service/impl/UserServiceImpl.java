@@ -19,16 +19,22 @@ import com.hmdp.utils.UserHolder;
 
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.data.redis.connection.BitFieldSubCommands;
 
 import javax.annotation.Resource;
+
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.List;
 
 import static com.hmdp.utils.RedisConstants.LOGIN_CODE_KEY;
 import static com.hmdp.utils.RedisConstants.LOGIN_CODE_TTL;
 import static com.hmdp.utils.RedisConstants.LOGIN_USER_KEY;
 import static com.hmdp.utils.RedisConstants.LOGIN_USER_TTL;
+import static com.hmdp.utils.RedisConstants.USER_SIGN_KEY;
 import static com.hmdp.utils.SystemConstants.USER_NICK_NAME_PREFIX;
 // 这里的@Service注解是为了让Spring能够扫描到这个类，并将其作为一个Bean进行管理。这样在其他地方需要使用IUserService的时候，Spring就能够自动注入这个实现类。
 @Service
@@ -38,6 +44,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
     @Resource
     private StringRedisTemplate stringRedisTemplate;
 
+    // Bitmap签到所需的常量
+    private static final DateTimeFormatter SIGN_MONTH_FORMATTER =
+        DateTimeFormatter.ofPattern("yyyyMM");
 
     @Override
     public Result sendCode(String phone){
@@ -186,7 +195,95 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
 
         return Result.ok();
     }
+    // 签到
+    @Override
+    public Result sign(){
+        // 1. 获取当前登录用户
+        UserDTO loginUser=UserHolder.getUser();
+        if(loginUser==null){
+            return Result.fail("请先登录");
+        }
 
+        // 2. 获取日期
+        LocalDate today=LocalDate.now();
+
+        // 3. 构造Bitmap key
+        String key = USER_SIGN_KEY
+                + loginUser.getId()
+                + ":"
+                + today.format(SIGN_MONTH_FORMATTER);
+        
+        /**
+         * 4. 日期从1开始,Bitmap offset从开始
+         */
+        int offset =today.getDayOfMonth()-1;
+
+        // 5. 将今天对应的bit位设置为1
+        stringRedisTemplate.opsForValue()
+                .setBit(key,offset,true);
+        
+        return Result.ok();
+    }
+    // 统计迄今连续签到天数
+    @Override
+    public Result signCount(){
+        // 1. 获取当前登录用户
+        UserDTO loginUser=UserHolder.getUser();
+        if(loginUser==null){
+            return Result.fail("请先登录");
+        }
+        // 2. 获取日期
+        LocalDate today=LocalDate.now();
+        // 3. 构造Bitmap key
+        String key = USER_SIGN_KEY
+                + loginUser.getId()
+                + ":"
+                + today.format(SIGN_MONTH_FORMATTER);
+        // 4. 今天是本月第几天 ,就读取多少个bit
+        int dayOfMonth = today.getDayOfMonth();
+
+        /**
+         * 5. 读取本月1号截至今天的所有签到位
+         *    unsigned(dayOfMonth):将dayOfMonth个bit位解释成一个无符号整数
+         *    valueAt(0):从bit 0开始读取
+         */
+        List<Long> result=stringRedisTemplate
+                .opsForValue()
+                .bitField(
+                        key,
+                        BitFieldSubCommands.create()
+                                .get(
+                                        BitFieldSubCommands
+                                                .BitFieldType
+                                                .unsigned(dayOfMonth)
+                                )
+                                .valueAt(0)
+                );
+        // 6. 没有签到数据
+        if (result == null || result.isEmpty()) {
+            return Result.ok(0);
+        }
+        Long number=result.get(0);
+
+        if (number == null || number == 0L) {
+            return Result.ok(0);
+        }
+
+        // 7. 从今天开始向前统计连续的1的个数
+        int count=0;
+        while((number&1l)==1l){
+            count++;
+            /**
+             * 右移一位,让最低位与"1"与,当最低位变成0时循环终止
+             */
+            number>>>=1;
+        }
+        return Result.ok(count);
+    }
+    @Override
+    public Result signTotal(){
+        return Result.ok();
+    }
     /**
      * 因为无论是验证码登录/注册还是密码登录,都需要使用token进行令牌申请并存入Redis
      * 故将该部分逻辑单独作为userServiceImpl的一个内部私有方法

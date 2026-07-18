@@ -7,58 +7,76 @@ public class RedisConstants {
     public static final String PROJECT_PREFIX="hmdp:";
 
     /**
-     * 手机验证码
+     * 手机验证码(String Redis)
      * hmdp:login:code:手机号
      * 验证码有效期 ,单位:分钟
      */
     public static final String LOGIN_CODE_KEY = PROJECT_PREFIX+"login:code:";
     public static final Long LOGIN_CODE_TTL = 2L;
-
     /**
-     * 登录用户
+     * 登录用户(String Redis)
      * hmdp:login:token:token
      * 登录用户有效期 ,单位:分钟
      */
     public static final String LOGIN_USER_KEY = PROJECT_PREFIX+"login:token:";
     public static final Long LOGIN_USER_TTL = 60L;
-
     /**
-     * 空值缓存过期时间，单位：分钟
+     * 空值缓存过期时间，单位：分钟(String Redis)
      * 缓存key名字共用普通商户缓存
      * 用于防止缓存穿透
      */
     public static final Long CACHE_NULL_TTL = 2L;
-
     /**
-     * 商铺缓存
+     * 商铺缓存(Hash Redis)
      * hmdp:cache:shop:id
      * 商铺缓存有效期 ,单位:分钟
      */
     public static final String CACHE_SHOP_KEY = PROJECT_PREFIX+"cache:shop:";
     public static final Long CACHE_SHOP_TTL = 30L;
-
     /**
      * 商铺缓存Redis互斥锁前缀及过期时间,单位:秒
      * hmdp:lock:shop:id
      */
     public static final String LOCK_SHOP_KEY = PROJECT_PREFIX+"lock:shop:";
     public static final Long LOCK_SHOP_TTL = 10L;
-
     /**
      * 博客点赞用户前缀
      * blog:liked:{id}
      */
     public static final String BLOG_LIKED_KEY = PROJECT_PREFIX+"blog:liked:";
-
     /**
-     * 用户关注集合
+     * 用户关注集合(Set)
      * key: hmdp:follows:{userId}
      * member: 被关注的用户id
      */
     public static final String FOLLOWS_KEY=PROJECT_PREFIX+"follows:";
+    /**
+     * 用户Feed收件箱(ZSet Redis类型Redis)
+     * key: hmdp:feed:{userId}
+     * member: 关注的博主的博客ID信息
+     * score: 该博客发布时间戳
+     */
+    public static final String FEED_KEY = PROJECT_PREFIX+"feed:";
+    /**
+     * 用户每月签到Bitmap(String类型Redis)
+     * key: hmdp:sign:{userId}:yyyyMM
+     * value存当前月份每天签到情况
+     */
+    public static final String USER_SIGN_KEY = PROJECT_PREFIX+"sign:";
+    /**
+     * 用户每月活跃Bitmap(String Redis)
+     * key: hmdp:active:{userId}:yyyyMM
+     * value存当前月份每天活跃情况
+     */
+    public static final String USER_ACTIVE_KEY = PROJECT_PREFIX + "active:";
+    /**
+     * 用户历史活跃天数(String Redis)
+     * key: hmdp:active:total:{userId}
+     * value存累计天数
+     */
+    public static final String USER_ACTIVE_TOTAL_KEY = PROJECT_PREFIX + "active:total:";
+
     public static final String SECKILL_STOCK_KEY = PROJECT_PREFIX+"seckill:stock:";
     
-    public static final String FEED_KEY = PROJECT_PREFIX+"feed:";
     public static final String SHOP_GEO_KEY = PROJECT_PREFIX+"shop:geo:";
-    public static final String USER_SIGN_KEY = PROJECT_PREFIX+"sign:";
 }

@@ -66,4 +66,18 @@ public class UserController {
         info.setUpdateTime(null);
         return Result.ok(info);
     }
+    // 这里的签到需要手动操作 ,后续我个人认为要改成每天只要用户登录过账号就记为签到
+    @PostMapping("/sign")
+    public Result sign(){
+        return userService.sign();
+    }
+    @GetMapping("/sign/count")
+    public Result signCount(){
+        return userService.signCount();
+    }
+    // 预留一个查询当月活跃天数的接口
+    @GetMapping("/sign/total")
+    public Result signTotal(){
+        return userService.signTotal();
+    }
 }
