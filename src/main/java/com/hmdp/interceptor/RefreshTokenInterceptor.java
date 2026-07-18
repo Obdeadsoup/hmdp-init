@@ -8,6 +8,7 @@ import cn.hutool.json.JSONUtil;
 import cn.hutool.json.JSONUtil;
 
 import com.hmdp.dto.UserDTO;
+import com.hmdp.utils.UserActiveRecorder;
 import com.hmdp.utils.UserHolder;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.web.servlet.HandlerInterceptor;
@@ -23,9 +24,14 @@ import static com.hmdp.utils.RedisConstants.LOGIN_USER_TTL;
 public class RefreshTokenInterceptor implements HandlerInterceptor{
     private final StringRedisTemplate stringRedisTemplate;
 
+    private final UserActiveRecorder userActiveRecorder;
+
     public RefreshTokenInterceptor(
-        StringRedisTemplate stringRedisTemplate){
+        StringRedisTemplate stringRedisTemplate,
+        UserActiveRecorder userActiveRecorder
+    ){
             this.stringRedisTemplate=stringRedisTemplate;
+            this.userActiveRecorder=userActiveRecorder;
     }
     /**
      * Controller方法执行前调用
@@ -63,6 +69,9 @@ public class RefreshTokenInterceptor implements HandlerInterceptor{
         );
         // 将用户信息存入ThreadLocal中
         UserHolder.saveUser(userDTO);
+
+        // 自动记录当天活跃
+        userActiveRecorder.recordActiveDay(userDTO.getId());
 
         // 用户仍然活跃刷新tokenKey有效期(token并没有变,只是过期时间修改了)
         stringRedisTemplate.expire(

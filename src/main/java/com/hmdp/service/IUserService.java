@@ -19,6 +19,6 @@ public interface IUserService extends IService<User> {
     Result sign();
     // 统计本月截至今天的签到天数
     Result signCount();
-    // 统计本月使用天数
-    Result signTotal();
+    // 统计使用天数
+    Result activeDays();
 }

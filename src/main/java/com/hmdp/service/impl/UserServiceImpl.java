@@ -15,6 +15,7 @@ import com.hmdp.mapper.UserMapper;
 import com.hmdp.service.IUserService;
 import com.hmdp.utils.PasswordEncoder;
 import com.hmdp.utils.RegexUtils;
+import com.hmdp.utils.UserActiveRecorder;
 import com.hmdp.utils.UserHolder;
 
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -43,7 +44,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
     // 注入依赖
     @Resource
     private StringRedisTemplate stringRedisTemplate;
-
+    // 这里注入一下记录登录活跃状态的工具类
+    @Resource
+    private UserActiveRecorder userActiveRecorder;
     // Bitmap签到所需的常量
     private static final DateTimeFormatter SIGN_MONTH_FORMATTER =
         DateTimeFormatter.ofPattern("yyyyMM");
@@ -137,6 +140,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         }
 
         String token =createToken(user);
+
+        // 登录成功也算当天使用
+        userActiveRecorder.recordActiveDay(user.getId());
         return Result.ok(token);
     }
 
@@ -281,8 +287,17 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         return Result.ok(count);
     }
     @Override
-    public Result signTotal(){
-        return Result.ok();
+    public Result activeDays(){
+        UserDTO loginUser = UserHolder.getUser();
+
+        if (loginUser == null) {
+            return Result.fail("用户未登录");
+        }
+
+        long days = userActiveRecorder
+                .getTotalActiveDays(loginUser.getId());
+
+        return Result.ok(days);
     }
     /**
      * 因为无论是验证码登录/注册还是密码登录,都需要使用token进行令牌申请并存入Redis

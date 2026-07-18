@@ -2,6 +2,7 @@ package com.hmdp.config;
 
 import com.hmdp.interceptor.LoginInterceptor;
 import com.hmdp.interceptor.RefreshTokenInterceptor;
+import com.hmdp.utils.UserActiveRecorder;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -15,7 +16,8 @@ import javax.annotation.Resource;
 public class MvcConfig implements WebMvcConfigurer{
     @Resource
     private StringRedisTemplate stringRedisTemplate;
-
+    @Resource
+    private UserActiveRecorder userActiveRecorder;
 
     @Override
     public void addInterceptors(InterceptorRegistry registry){
@@ -25,7 +27,10 @@ public class MvcConfig implements WebMvcConfigurer{
          * 拦截所有请求,即便访问的是公开接口,只要携带了有效token也刷新登录有效期
          */
         registry.addInterceptor(
-                new RefreshTokenInterceptor(stringRedisTemplate)
+                new RefreshTokenInterceptor(
+                        stringRedisTemplate,
+                        userActiveRecorder
+                )
             )
             .addPathPatterns("/**")
             // 这里的order很重要,先执行刷新token拦截器

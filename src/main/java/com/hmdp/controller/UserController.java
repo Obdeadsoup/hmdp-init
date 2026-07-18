@@ -76,8 +76,8 @@ public class UserController {
         return userService.signCount();
     }
     // 预留一个查询当月活跃天数的接口
-    @GetMapping("/sign/total")
-    public Result signTotal(){
-        return userService.signTotal();
+    @GetMapping("/active-days")
+    public Result activeDays(){
+        return userService.activeDays();
     }
 }
