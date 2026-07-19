@@ -175,7 +175,7 @@ public class ShopServiceImpl
                         key,
                         GeoReference.fromCoordinate(x,y),
                         new Distance(
-                                5000,
+                                5,
                                 Metrics.KILOMETERS
                         ),
                         RedisGeoCommands

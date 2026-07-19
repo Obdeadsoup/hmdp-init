@@ -13,11 +13,12 @@ spring:
     password: ${HMDP_TEST_DB_PASSWORD:123456}
 
   redis:
-    # Redis 的本地配置绑定了 127.0.0.1；显式使用 IPv4，避免 localhost 在不同 JVM 中解析到不同地址族。
+    # Docker Redis 通过 -p 127.0.0.1:6379:6379 发布到宿主机；
+    # 显式使用 IPv4，避免 localhost 在不同 JVM 中解析到不同地址族。
     host: ${HMDP_TEST_REDIS_HOST:127.0.0.1}
     port: ${HMDP_TEST_REDIS_PORT:6379}
     password: ${HMDP_TEST_REDIS_PASSWORD:}
-    # 默认用 Redis 的 1 号逻辑库，避免测试清空或写入开发环境默认的 0 号库。
+    # GEO 初始化需要让正在运行的项目也能读取结果，因此写入 Docker Redis 的 0 号逻辑库。
     database: ${HMDP_TEST_REDIS_DATABASE:0}
     lettuce:
       pool:
