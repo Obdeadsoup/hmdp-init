@@ -9,7 +9,8 @@ spring:
     username: ${HMDP_DB_USERNAME:root}
     password: ${HMDP_DB_PASSWORD:123456}
   redis:
-    host: ${HMDP_REDIS_HOST:localhost}
+    # Docker 容器通过 -p 127.0.0.1:6379:6379 映射到 Windows 宿主机。
+    host: ${HMDP_REDIS_HOST:127.0.0.1}
     port: ${HMDP_REDIS_PORT:6379}
     password: ${HMDP_REDIS_PASSWORD:}
     lettuce:

@@ -69,7 +69,6 @@ public class GeoDataInitializerTest {
             List<Shop> sameTypeShops=entry.getValue();
 
             String key=SHOP_GEO_KEY+typeId;
-
             /**
              * 这一段其实我没理解逻辑,等会再看
              */
@@ -77,7 +76,6 @@ public class GeoDataInitializerTest {
 
             List<RedisGeoCommands.GeoLocation<String>>
                     locations=new ArrayList<>();
-
             /**
              * 4.
              */

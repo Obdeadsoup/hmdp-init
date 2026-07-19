@@ -142,6 +142,7 @@ public class ShopServiceImpl
                 ?1
                 :current;
 
+        // 如果位置信息不完整直接返回默认结果(不按距离排序)
         if(x==null||y==null){
             Page<Shop> page=query()
                     .eq("type_id",typeId)
@@ -222,7 +223,23 @@ public class ShopServiceImpl
             shopIds.add(shopId);
             distanceMap.put(shopId,distance);
         }
-        return Result.ok();
+
+        List<Shop> queriedShops=listByIds(shopIds);
+
+        Map<Long,Shop> shopMap=new HashMap<>();
+
+        for(Shop shop:queriedShops){
+            shopMap.put(shop.getId(),shop);
+        }
+
+        List<Shop> result=new ArrayList<>();
+        for(Long shopId:shopIds){
+            Shop shop = shopMap.get(shopId);
+            if(shop==null){continue;}
+            shop.setDistance(distanceMap.get(shopId));
+            result.add(shop);
+        }
+        return Result.ok(result);
     }
     /** 
      * Redis互斥锁核心方法
