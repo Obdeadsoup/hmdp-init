@@ -36,12 +36,9 @@ import static com.hmdp.utils.RedisConstants.*;
 public class ShopServiceImpl 
         extends ServiceImpl<ShopMapper, Shop> 
         implements IShopService {
-    /**
-     * Redis注入
-     */ 
+    //Redis注入 
     @Resource
     private StringRedisTemplate stringRedisTemplate;
-
     /**
      * 重写IShopService接口中的queryById方法,实现Redis缓存逻辑
      */
@@ -123,9 +120,7 @@ public class ShopServiceImpl
         return Result.ok();
     }
     /**
-     * 
-     * @param id
-     * @return
+     * GEO Redis附近商铺查询业务(位置不完整时为普通查询)
      */
     @Override
     public Result queryShopByType( 

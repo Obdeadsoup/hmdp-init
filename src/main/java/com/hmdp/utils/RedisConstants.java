@@ -75,8 +75,52 @@ public class RedisConstants {
      * value存累计天数
      */
     public static final String USER_ACTIVE_TOTAL_KEY = PROJECT_PREFIX + "active:total:";
-
-    public static final String SECKILL_STOCK_KEY = PROJECT_PREFIX+"seckill:stock:";
-    
+    /**
+     * 商铺类型所有商铺集合(Redis GEO)
+     * key: hmdp:shop:geo:{typeId}
+     * value中的member为该类型所有商铺的集合,附带point(x,y)的坐标信息
+     */
     public static final String SHOP_GEO_KEY = PROJECT_PREFIX+"shop:geo:";
+
+    // 下面这里就是秒杀业务涉及的Redis了
+    /**
+     * 秒杀券Redis库存
+     * hmdp:seckill:stock:{voucherId}
+     * value是库存量
+     */
+    public static final String SECKILL_STOCK_KEY =
+            PROJECT_PREFIX + "seckill:stock:";
+    /**
+     * 已成功取得秒杀资格的用户集合
+     * hmdp:seckill:order:{voucherId}
+     * value是一个用户ID集合
+     */
+    public static final String SECKILL_ORDER_KEY =
+            PROJECT_PREFIX + "seckill:order:";
+    /**
+     * 秒杀开始/结束时间
+     * hmdp:seckill:begin/end:{voucherId}
+     * value为时间
+     */
+    public static final String SECKILL_BEGIN_KEY =
+            PROJECT_PREFIX + "seckill:begin:";
+    public static final String SECKILL_END_KEY =
+            PROJECT_PREFIX + "seckill:end:";
+    /**
+     * 秒杀订单消息队列
+     * hmdp:stream:orders:{voucherId}
+     */
+    public static final String STREAM_ORDERS_KEY =
+            PROJECT_PREFIX + "stream:orders";
+    public static final String STREAM_ORDERS_GROUP =
+            "g1";
+    public static final String STREAM_ORDERS_CONSUMER =
+            "c1";
+    /**
+     * 订单处理分布式锁
+     * hmdp:lock:order:{voucherId}
+     */
+    public static final String LOCK_ORDER_KEY =
+            PROJECT_PREFIX + "lock:order:";
+    
 }
