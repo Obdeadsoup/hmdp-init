@@ -301,3 +301,12 @@ ADD INDEX idx_parent_time (parent_id,create_time);
 
 ALTER TABLE tb_voucher_order
 ADD UNIQUE KEY uk_user_voucher(user_id,voucher_id);
+
+DELETE FROM tb_voucher_order
+WHERE voucher_id = 10;
+
+UPDATE tb_seckill_voucher
+SET stock = 100,
+    begin_time = DATE_SUB(NOW(), INTERVAL 1 HOUR),
+    end_time = DATE_ADD(NOW(), INTERVAL 1 HOUR)
+WHERE voucher_id = 10;
