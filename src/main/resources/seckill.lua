@@ -9,9 +9,9 @@
 -- ARGV[3] orderId
 -- ARGV[4] 当前时间戳
 
-local stock=tonumber(redis.call('GET',keys[1]))
-local beginTime=tonumber(redis.call('get',keys[3]))
-local endTime=tonumber(redis.call('get',key[4]))
+local stock=tonumber(redis.call('GET',KEYS[1]))
+local beginTime=tonumber(redis.call('get',KEYS[3]))
+local endTime=tonumber(redis.call('get',KEYS[4]))
 local now=tonumber(ARGV[4])
 
 -- 秒杀数据为初始化
@@ -39,22 +39,22 @@ end
 -- 检查一人一单
 if redis.call(
         'sismember',
-        keys[2],
+        KEYS[2],
         ARGV[1]
 )==1 then
     return 2
 end
 
 -- 扣Redis库存
-redis call('incrby',keys[1],-1)
+redis.call('incrby',KEYS[1],-1)
 -- 写Redis记录用户已取得资格
-redis,call('sadd',keys[2],ARGV[1])
+redis.call('sadd',KEYS[2],ARGV[1])
 -- 订单消息写入Stream
 redis.call(
     'XADD',
-    keys[5],
+    KEYS[5],
     '*',
-    'id',AGRV[3],
+    'id',ARGV[3],
     'userId',ARGV[1],
     'voucherId',ARGV[2]
 )
