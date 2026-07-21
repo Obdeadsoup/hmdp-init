@@ -298,3 +298,6 @@ ALTER TABLE tb_follow add unique key uk_user_follow(user_id,follow_user_id);
 ALTER TABLE tb_blog_comments
 ADD INDEX idx_blog_parent_time (blog_id,parent_id,create_time),
 ADD INDEX idx_parent_time (parent_id,create_time);
+
+ALTER TABLE tb_voucher_order
+ADD UNIQUE KEY uk_user_voucher(user_id,voucher_id);
