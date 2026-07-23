@@ -1,0 +1,133 @@
+name: hmdp
+
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: hmdp-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_ROOT_HOST: "%"
+      MYSQL_DATABASE: hmdp
+      TZ: Asia/Shanghai
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    ports:
+      # 保留宿主机 3306 给本机 MySQL 使用。
+      - "3307:3306"
+    volumes:
+      - type: bind
+        source: ${HMDP_DATA_DIR}/mysql8
+        target: /var/lib/mysql
+      - type: bind
+        source: ./docker/mysql/init
+        target: /docker-entrypoint-initdb.d
+        read_only: true
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+
+  redis:
+    image: redis:8.8.0
+    container_name: hmdp-redis
+    restart: unless-stopped
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      TZ: Asia/Shanghai
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+      - --requirepass
+      - ${REDIS_PASSWORD}
+    ports:
+      - "6379:6379"
+    volumes:
+      - type: bind
+        source: ${HMDP_DATA_DIR}/redis8
+        target: /data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" ping | grep -q PONG"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 5s
+
+  # 秒杀异步消费者读取 hmdp:stream:orders 前必须先存在消费组 g1。
+  redis-init:
+    image: redis:8.8.0
+    container_name: hmdp-redis-init
+    restart: "no"
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    entrypoint:
+      - /bin/sh
+      - -c
+      - >-
+        redis-cli -h redis -a "$$REDIS_PASSWORD"
+        XGROUP CREATE hmdp:stream:orders g1 0 MKSTREAM 2>/dev/null || true
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: hmdp-app:local
+    container_name: hmdp-app
+    restart: unless-stopped
+    environment:
+      TZ: Asia/Shanghai
+      HMDP_DB_HOST: mysql
+      HMDP_DB_PORT: 3306
+      HMDP_DB_NAME: hmdp
+      HMDP_DB_USERNAME: root
+      HMDP_DB_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      HMDP_REDIS_HOST: redis
+      HMDP_REDIS_PORT: 6379
+      HMDP_REDIS_PASSWORD: ${REDIS_PASSWORD}
+      HMDP_UPLOAD_DIR: /data/hmdp/imgs
+      JAVA_OPTS: >-
+        -Xms256m -Xmx512m -Dfile.encoding=UTF-8
+        -Duser.timezone=Asia/Shanghai
+    ports:
+      # 仍可用 curl 直接测试后端接口。
+      - "127.0.0.1:8081:8081"
+    volumes:
+      # 与 Nginx 共用，上传的新图片会立即通过 /imgs 访问。
+      - type: bind
+        source: ./src/main/resources/nginx-1.18.0/html/hmdp/imgs
+        target: /data/hmdp/imgs
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis-init:
+        condition: service_completed_successfully
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: hmdp-nginx
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    volumes:
+      - type: bind
+        source: ./src/main/resources/nginx-1.18.0/html/hmdp
+        target: /usr/share/nginx/html
+        read_only: true
+      - type: bind
+        source: ./src/main/resources/nginx-1.18.0/html/hmdp/imgs
+        target: /usr/share/nginx/html/imgs
+        read_only: true
+      - type: bind
+        source: ./docker/nginx/default.conf
+        target: /etc/nginx/conf.d/default.conf
+        read_only: true
+    depends_on:
+      app:
+        condition: service_started

@@ -1,0 +1,17 @@
+.git
+.gitignore
+.idea
+*.iml
+*.log
+
+.vscode/
+# 仅将 Maven 最终产物放入构建上下文，其他编译文件仍忽略。
+target/*
+!target/hmdp-1.0-SNAPSHOT.jar
+logs/
+
+.env
+*.zip
+
+frontend/
+src/test

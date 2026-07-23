@@ -11,6 +11,7 @@ import com.hmdp.dto.UserDTO;
 import com.hmdp.utils.UserActiveRecorder;
 import com.hmdp.utils.UserHolder;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.lang.Nullable;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 import javax.servlet.http.HttpServletRequest;
@@ -91,7 +92,7 @@ public class RefreshTokenInterceptor implements HandlerInterceptor{
             HttpServletRequest request,
             HttpServletResponse reponse,
             Object handler,
-            Exception ex
+            @Nullable Exception ex
     ){
         UserHolder.removeUser();
 
