@@ -2,6 +2,7 @@ package com.hmdp.config;
 
 import com.hmdp.interceptor.LoginInterceptor;
 import com.hmdp.interceptor.RefreshTokenInterceptor;
+import com.hmdp.interceptor.RoleInterceptor;
 import com.hmdp.utils.UserActiveRecorder;
 
 import org.springframework.context.annotation.Configuration;
@@ -18,6 +19,8 @@ public class MvcConfig implements WebMvcConfigurer{
     private StringRedisTemplate stringRedisTemplate;
     @Resource
     private UserActiveRecorder userActiveRecorder;
+    @Resource
+    private RoleInterceptor roleInterceptor;
 
     @Override
     public void addInterceptors(InterceptorRegistry registry){
@@ -48,18 +51,28 @@ public class MvcConfig implements WebMvcConfigurer{
                 "/user/login",
                 "/user/info/**",
 
-                "/shop/**",
                 "/shop-type/**",
-                "/voucher/**",
+
+                // 当前仅以下商铺、优惠券读取接口允许匿名访问
+                "/shop/*",
+                "/shop/of/type",
+                "/shop/of/name",
+                "/voucher/list/*",
 
                 "/blog/hot",
                 "/blog/of/user",
                 "/blog/*",
-                "/blog/likes/**",
-                
-                "/upload/**"
+                "/blog/likes/**"
             )
             .order(1);
+        /**
+         * 用户权限校验拦截器
+         */
+        registry.addInterceptor(
+                roleInterceptor
+            )
+            .addPathPatterns("/**")
+            .order(2);
     }
     
 }

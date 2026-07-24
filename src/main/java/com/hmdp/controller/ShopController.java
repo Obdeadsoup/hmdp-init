@@ -1,13 +1,14 @@
 package com.hmdp.controller;
-
-
-import cn.hutool.core.util.StrUtil;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.hmdp.annotation.RequireRole;
 import com.hmdp.dto.Result;
+import com.hmdp.dto.ShopCreateDTO;
+import com.hmdp.dto.ShopUpdateDTO;
 import com.hmdp.entity.Shop;
 import com.hmdp.service.IShopService;
-import com.hmdp.utils.SystemConstants;
+import com.hmdp.utils.UserRoles;
+
 import org.springframework.web.bind.annotation.*;
+import javax.validation.Valid;
 
 import javax.annotation.Resource;
 
@@ -26,20 +27,20 @@ public class ShopController {
     }
     /**
      * 新增商铺信息
-     */
+    */
+
+    @RequireRole(UserRoles.ADMIN)
     @PostMapping
-    public Result saveShop(@RequestBody Shop shop) {
-        // 写入数据库
-        shopService.save(shop);
-        // 返回店铺id
-        return Result.ok(shop.getId());
+    public Result saveShop(@Valid @RequestBody ShopCreateDTO request) {
+        return shopService.saveShop(request);
     }
     /**
      * 更新商铺信息
-     */
+    */
+    @RequireRole(UserRoles.ADMIN)
     @PutMapping
-    public Result updateShop(@RequestBody Shop shop) {
-        return shopService.updateShop(shop);
+    public Result updateShop(@Valid @RequestBody ShopUpdateDTO request) {
+        return shopService.updateShop(request);
     }
     /**
      * 根据商铺类型分页查询商铺信息
@@ -76,5 +77,19 @@ public class ShopController {
             @RequestParam(value = "current", defaultValue = "1") Integer current
     ) {
         return Result.ok();
+    }
+
+    private Shop toShop(ShopUpdateDTO request) {
+        return new Shop()
+                .setId(request.getId())
+                .setName(request.getName())
+                .setTypeId(request.getTypeId())
+                .setImages(request.getImages())
+                .setArea(request.getArea())
+                .setAddress(request.getAddress())
+                .setX(request.getX())
+                .setY(request.getY())
+                .setAvgPrice(request.getAvgPrice())
+                .setOpenHours(request.getOpenHours());
     }
 }

@@ -8,6 +8,8 @@ import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.hmdp.dto.Result;
+import com.hmdp.dto.ShopCreateDTO;
+import com.hmdp.dto.ShopUpdateDTO;
 import com.hmdp.entity.Shop;
 import com.hmdp.mapper.ShopMapper;
 import com.hmdp.service.IShopService;
@@ -93,15 +95,46 @@ public class ShopServiceImpl
 
         return Result.ok(shop);
     }
-
+    @Override
+    public Result saveShop(ShopCreateDTO dto){
+        if(dto==null){
+            return Result.fail("商铺信息不合法");
+        }
+        Shop shop = new Shop()
+                .setName(dto.getName())
+                .setTypeId(dto.getTypeId())
+                .setImages(dto.getImages())
+                .setArea(dto.getArea())
+                .setAddress(dto.getAddress())
+                .setX(dto.getX())
+                .setY(dto.getY())
+                .setAvgPrice(dto.getAvgPrice())
+                .setOpenHours(dto.getOpenHours())
+                .setSold(0)
+                .setComments(0)
+                .setScore(0);
+        save(shop);
+        return Result.ok(shop.getId());
+    }
     /**
      * 重写IShopService接口中的updateShop方法,实现更新商铺信息时删除Redis缓存
      */
     @Override
-    public Result updateShop(Shop shop){
-        if(shop==null||shop.getId()==null){
+    public Result updateShop(ShopUpdateDTO request){
+        if(request==null||request.getId()==null){
             return Result.fail("商铺ID不合法");
         }
+        Shop shop= new Shop()
+                .setId(request.getId())
+                .setName(request.getName())
+                .setTypeId(request.getTypeId())
+                .setImages(request.getImages())
+                .setArea(request.getArea())
+                .setAddress(request.getAddress())
+                .setX(request.getX())
+                .setY(request.getY())
+                .setAvgPrice(request.getAvgPrice())
+                .setOpenHours(request.getOpenHours());
 
         /**
          * 这里调用的是MyBatis-Plus Service层提供的方法

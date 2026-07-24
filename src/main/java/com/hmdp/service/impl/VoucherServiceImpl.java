@@ -2,6 +2,8 @@ package com.hmdp.service.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.hmdp.dto.Result;
+import com.hmdp.dto.SeckillVoucherCreateDTO;
+import com.hmdp.dto.VoucherCreateDTO;
 import com.hmdp.entity.SeckillVoucher;
 import com.hmdp.entity.Voucher;
 import com.hmdp.mapper.VoucherMapper;
@@ -36,8 +38,20 @@ public class VoucherServiceImpl extends ServiceImpl<VoucherMapper, Voucher> impl
     }
 
     @Override
+    public Result addVoucher(VoucherCreateDTO request) {
+        Voucher voucher = toVoucher(request, 0);
+        save(voucher);
+        return Result.ok(voucher.getId());
+    }
+
+    @Override
     @Transactional
-    public void addSeckillVoucher(Voucher voucher) {
+    public Result addSeckillVoucher(SeckillVoucherCreateDTO request) {
+        Voucher voucher = toVoucher(request, 1);
+        voucher.setStock(request.getStock());
+        voucher.setBeginTime(request.getBeginTime());
+        voucher.setEndTime(request.getEndTime());
+
         // 1. 保存优惠券主表
         save(voucher);
         // 2. 保存秒杀扩展表并初始化
@@ -55,7 +69,21 @@ public class VoucherServiceImpl extends ServiceImpl<VoucherMapper, Voucher> impl
             public void afterCommit(){
                 cacheSeckillVoucher(seckillVoucher);
             }
-        });
+                });
+
+        return Result.ok(voucher.getId());
+    }
+
+    private Voucher toVoucher(VoucherCreateDTO request, int type) {
+        return new Voucher()
+                .setShopId(request.getShopId())
+                .setTitle(request.getTitle())
+                .setSubTitle(request.getSubTitle())
+                .setRules(request.getRules())
+                .setPayValue(request.getPayValue())
+                .setActualValue(request.getActualValue())
+                .setType(type)
+                .setStatus(1);
     }
 
     private void cacheSeckillVoucher(

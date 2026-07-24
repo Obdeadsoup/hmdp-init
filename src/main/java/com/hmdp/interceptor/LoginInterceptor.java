@@ -31,7 +31,7 @@ public class LoginInterceptor implements HandlerInterceptor {
             HttpServletRequest request,
             HttpServletResponse response,
             Object handler){
-        // 直接插ThreadLocal中有没有用户,没有则说明没有登录,返回false不进入Controller层
+        // 直接查ThreadLocal中有没有用户,没有则说明没有登录,返回false不进入Controller层
         if(UserHolder.getUser()==null){
 
             // HTTP 401:未认证

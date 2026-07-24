@@ -198,8 +198,10 @@ CREATE TABLE `tb_user`  (
   `password` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT '' COMMENT '密码，加密存储',
   `nick_name` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT '' COMMENT '昵称，默认是用户id',
   `icon` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT '' COMMENT '人物头像',
+  `role` varchar(16) NOT NULL DEFAULT 'USER' COMMENT '用户角色: USER普通用户, ADMIN管理员',
   `create_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `update_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `uniqe_key_phone`(`phone`) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 1010 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Compact;
@@ -207,11 +209,11 @@ CREATE TABLE `tb_user`  (
 -- ----------------------------
 -- Records of tb_user
 -- ----------------------------
-INSERT INTO `tb_user` VALUES (1, '13686869696', '', '小鱼同学', '/imgs/blogs/blog1.jpg', '2021-12-24 10:27:19', '2022-01-11 16:04:00');
-INSERT INTO `tb_user` VALUES (2, '13838411438', '', '可可今天不吃肉', '/imgs/icons/kkjtbcr.jpg', '2021-12-24 15:14:39', '2021-12-28 19:58:04');
-INSERT INTO `tb_user` VALUES (4, '13456789011', '', 'user_slxaxy2au9f3tanffaxr', '', '2022-01-07 12:07:53', '2022-01-07 12:07:53');
-INSERT INTO `tb_user` VALUES (5, '13456789001', '', '可爱多', '/imgs/icons/user5-icon.png', '2022-01-07 16:11:33', '2022-03-11 09:09:20');
-INSERT INTO `tb_user` VALUES (6, '13456762069', '', 'user_xn5wr3hpsv', '', '2022-02-07 17:54:10', '2022-02-07 17:54:10');
+INSERT INTO `tb_user` (`id`, `phone`, `password`, `nick_name`, `icon`, `role`, `create_time`, `update_time`) VALUES (1, '13686869696', '', '小鱼同学', '/imgs/blogs/blog1.jpg', 'USER', '2021-12-24 10:27:19', '2022-01-11 16:04:00');
+INSERT INTO `tb_user` (`id`, `phone`, `password`, `nick_name`, `icon`, `role`, `create_time`, `update_time`) VALUES (2, '13838411438', '', '可可今天不吃肉', '/imgs/icons/kkjtbcr.jpg', 'USER', '2021-12-24 15:14:39', '2021-12-28 19:58:04');
+INSERT INTO `tb_user` (`id`, `phone`, `password`, `nick_name`, `icon`, `role`, `create_time`, `update_time`) VALUES (4, '13456789011', '', 'user_slxaxy2au9f3tanffaxr', '', 'USER', '2022-01-07 12:07:53', '2022-01-07 12:07:53');
+INSERT INTO `tb_user` (`id`, `phone`, `password`, `nick_name`, `icon`, `role`, `create_time`, `update_time`) VALUES (5, '13456789001', '', '可爱多', '/imgs/icons/user5-icon.png', 'USER', '2022-01-07 16:11:33', '2022-03-11 09:09:20');
+INSERT INTO `tb_user` (`id`, `phone`, `password`, `nick_name`, `icon`, `role`, `create_time`, `update_time`) VALUES (6, '13456762069', '', 'user_xn5wr3hpsv', '', 'USER', '2022-02-07 17:54:10', '2022-02-07 17:54:10');
 
 -- ----------------------------
 -- Table structure for tb_user_info

@@ -1,0 +1,45 @@
+name: hmdp-test
+
+services:
+  mysql-test:
+    image: mysql:8.0
+    container_name: hmdp-mysql-test
+
+    environment:
+      MYSQL_ROOT_PASSWORD: test_root_password
+      MYSQL_DATABASE: hmdp
+      MYSQL_USER: hmdp_test
+      MYSQL_PASSWORD: hmdp_test_password
+
+    ports:
+      - "127.0.0.1:3308:3306"
+
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+
+    volumes:
+      - ./hmdp.sql:/docker-entrypoint-initdb.d/01-hmdp.sql:ro
+
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "mysqladmin ping -h 127.0.0.1 -uroot -ptest_root_password"
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis-test:
+    image: redis:7-alpine
+    container_name: hmdp-redis-test
+
+    ports:
+      - "127.0.0.1:6380:6379"
+
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20

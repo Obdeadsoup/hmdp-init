@@ -3,6 +3,8 @@ package com.hmdp.service;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.hmdp.entity.Shop;
 import com.hmdp.dto.Result;
+import com.hmdp.dto.ShopCreateDTO;
+import com.hmdp.dto.ShopUpdateDTO;
 
 public interface IShopService extends IService<Shop> {
     
@@ -13,7 +15,7 @@ public interface IShopService extends IService<Shop> {
     /**
      * 更新商铺信息
      */
-    Result updateShop(Shop shop);
+    Result updateShop(ShopUpdateDTO request);
     /**
      * 根据商铺类型按距离远近查询商铺
      * @param typeId 商铺类型
@@ -27,4 +29,5 @@ public interface IShopService extends IService<Shop> {
             Double x,
             Double y
     );
+    Result saveShop(ShopCreateDTO dto);
 }
